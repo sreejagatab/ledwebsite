@@ -49,8 +49,10 @@ describe('Login Form Integration', () => {
     fireEvent.click(submitButton);
     
     // Check if validation error is shown
+    // The error message is rendered conditionally, so we need to wait for it
     await waitFor(() => {
-      expect(screen.getByText('Email and password are required')).toBeInTheDocument();
+      const errorElement = screen.getByText('Email and password are required');
+      expect(errorElement).toBeInTheDocument();
     });
     
     // Verify that signIn was not called
@@ -138,6 +140,6 @@ describe('Login Form Integration', () => {
     // Wait for the loading state to be removed
     await waitFor(() => {
       expect(screen.queryByText('Signing in...')).not.toBeInTheDocument();
-    });
+    }, { timeout: 200 });
   });
 }); 

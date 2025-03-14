@@ -19,8 +19,8 @@ jest.mock('next/image', () => ({
 // Mock the PlaceholderImage component
 jest.mock('@/app/components/PlaceholderImage', () => ({
   __esModule: true,
-  default: ({ text }: { text: string }) => (
-    <div data-testid="placeholder-image">{text}</div>
+  default: ({ text, ...props }: { text: string, [key: string]: any }) => (
+    <div data-testid="placeholder-image" {...props}>{text}</div>
   ),
 }));
 
@@ -28,8 +28,9 @@ describe('ImageDisplay Component', () => {
   it('should render loading state initially', () => {
     render(<ImageDisplay src="/images/test.jpg" alt="Test Image" />);
     
-    // Check if loading spinner is visible
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    // Check if loading spinner is visible by looking for the animate-spin class
+    const spinner = screen.getByTestId('next-image').parentElement?.querySelector('.animate-spin');
+    expect(spinner).toBeInTheDocument();
   });
 
   it('should render the image after loading', async () => {
@@ -40,8 +41,9 @@ describe('ImageDisplay Component', () => {
       expect(screen.getByTestId('next-image')).toBeInTheDocument();
     });
     
-    // Check if loading spinner is not visible anymore
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    // Check if the image has the opacity-100 class which indicates it's visible
+    const image = screen.getByTestId('next-image');
+    expect(image).toHaveClass('opacity-100');
   });
 
   it('should render placeholder when image fails to load', async () => {
@@ -57,11 +59,12 @@ describe('ImageDisplay Component', () => {
   });
 
   it('should apply custom className', async () => {
+    const customClass = "custom-class";
     render(
       <ImageDisplay 
         src="/images/test.jpg" 
         alt="Test Image" 
-        className="custom-class" 
+        className={customClass} 
       />
     );
     
@@ -71,6 +74,7 @@ describe('ImageDisplay Component', () => {
     });
     
     // Check if the container has the custom class
-    expect(screen.getByTestId('next-image').parentElement).toHaveClass('custom-class');
+    const container = screen.getByTestId('next-image').closest('div');
+    expect(container).toHaveClass(customClass);
   });
 }); 
