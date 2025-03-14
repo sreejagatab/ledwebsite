@@ -9,7 +9,7 @@
 // ***********************************************
 
 // -- This is a parent command --
-Cypress.Commands.add('login', (email = 'admin@luminatechled.com', password = 'admin123') => {
+Cypress.Commands.add('login', (email = 'admin@example.com', password = 'password') => {
   cy.visit('/admin/login');
   cy.get('input[name="email"]').type(email);
   cy.get('input[name="password"]').type(password);
