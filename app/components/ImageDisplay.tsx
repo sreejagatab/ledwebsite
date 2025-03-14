@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import PlaceholderImage from './PlaceholderImage';
 
 interface ImageDisplayProps {
   src: string;
@@ -23,9 +24,6 @@ export default function ImageDisplay({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   
-  // Default placeholder for missing images
-  const placeholderSrc = "/images/placeholder.jpg";
-  
   // Handle image load complete
   const handleLoadComplete = () => {
     setIsLoading(false);
@@ -45,17 +43,26 @@ export default function ImageDisplay({
         </div>
       )}
       
-      <Image
-        src={error ? placeholderSrc : src}
-        alt={alt}
-        width={width}
-        height={height}
-        onLoad={handleLoadComplete}
-        onError={handleError}
-        priority={priority}
-        className={`transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-        style={{ objectFit: 'cover' }}
-      />
+      {error ? (
+        <PlaceholderImage 
+          text={`No image: ${alt}`} 
+          width={width} 
+          height={height} 
+          className={className}
+        />
+      ) : (
+        <Image
+          src={src}
+          alt={alt}
+          width={width}
+          height={height}
+          onLoad={handleLoadComplete}
+          onError={handleError}
+          priority={priority}
+          className={`transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+          style={{ objectFit: 'cover' }}
+        />
+      )}
     </div>
   );
 } 
