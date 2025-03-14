@@ -228,14 +228,14 @@ export default function TestimonialDetail() {
               href={`/admin/testimonials/${testimonialId}/edit`}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              Edit Testimonial
+              Edit
             </Link>
-            <Link
-              href="/admin/testimonials"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
-              Back to Testimonials
-            </Link>
+              Delete
+            </button>
           </div>
         </div>
         
@@ -310,134 +310,51 @@ export default function TestimonialDetail() {
                       disabled={isTogglingFeatured}
                       className={`inline-flex justify-center items-center px-4 py-2 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                         testimonial.featured
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Testimonial Details</h1>
-          <p className="text-gray-600">ID: {testimonial.id}</p>
-        </div>
-        <div className="flex space-x-3">
-          <Link
-            href={`/admin/testimonials/${testimonial.id}/edit`}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-300"
-          >
-            Edit
-          </Link>
-          <button
-            onClick={handleDeleteTestimonial}
-            disabled={isDeleting}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors duration-300 disabled:opacity-70"
-          >
-            {isDeleting ? "Deleting..." : "Delete"}
-          </button>
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Back
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-1">
-              <div className="bg-gray-100 rounded-lg p-4 h-64 flex items-center justify-center">
-                {testimonial.imageUrl ? (
-                  <div className="text-center">
-                    <div className="text-6xl mb-2">👤</div>
-                    <p className="text-gray-500">{testimonial.imageUrl}</p>
+                        ? 'bg-green-500 justify-end'
+                        : 'bg-gray-300 justify-start'
+                      }`}
+                    >
+                      <span className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-300 ${
+                        testimonial.featured ? 'translate-x-0' : '-translate-x-2'
+                      }`}></span>
+                    </button>
                   </div>
-                ) : (
-                  <div className="text-center text-gray-500">
-                    <div className="text-6xl mb-2">👤</div>
-                    <p>No profile image</p>
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-3">Testimonial Details</h3>
-                <div className="space-y-3">
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Client Name:</span>
-                    <span className="ml-2 text-sm text-gray-900">{testimonial.name}</span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Position:</span>
-                    <span className="ml-2 text-sm text-gray-900">{testimonial.position || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Company:</span>
-                    <span className="ml-2 text-sm text-gray-900">{testimonial.company || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Featured:</span>
-                    <span className="ml-2">
-                      <button 
-                        onClick={handleToggleFeatured}
-                        className={`w-12 h-6 rounded-full flex items-center transition-colors duration-300 focus:outline-none ${
-                          testimonial.featured ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'
-                        }`}
-                      >
-                        <span className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-300 ${
-                          testimonial.featured ? 'translate-x-0' : '-translate-x-2'
-                        }`}></span>
-                      </button>
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Date Added:</span>
-                    <span className="ml-2 text-sm text-gray-900">{new Date(testimonial.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  {testimonial.projectId && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Related Project:</span>
-                      <Link 
-                        href={`/admin/projects/${testimonial.projectId}`}
-                        className="ml-2 text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        View Project
-                      </Link>
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
-            
-            <div className="md:col-span-2">
-              <h3 className="text-lg font-medium text-gray-800 mb-3">Testimonial Content</h3>
-              <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                <p className="text-gray-700 italic">"{testimonial.content}"</p>
-              </div>
               
-              <div className="mt-8">
-                <h3 className="text-lg font-medium text-gray-800 mb-3">Actions</h3>
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    href={`/admin/testimonials/${testimonial.id}/edit`}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-300"
-                  >
-                    Edit Testimonial
-                  </Link>
-                  <button
-                    onClick={handleDeleteTestimonial}
-                    disabled={isDeleting}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors duration-300 disabled:opacity-70"
-                  >
-                    {isDeleting ? "Deleting..." : "Delete Testimonial"}
-                  </button>
-                  <button
-                    onClick={handleToggleFeatured}
-                    className={`px-4 py-2 rounded-md transition-colors duration-300 ${
-                      testimonial.featured 
-                        ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
-                        : 'bg-green-100 text-green-800 hover:bg-green-200'
-                    }`}
-                  >
-                    {testimonial.featured ? 'Remove from Featured' : 'Mark as Featured'}
-                  </button>
+              <div className="md:col-span-2">
+                <h3 className="text-lg font-medium text-gray-800 mb-3">Testimonial Content</h3>
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <p className="text-gray-700 italic">"{testimonial.content}"</p>
+                </div>
+                
+                <div className="mt-8">
+                  <h3 className="text-lg font-medium text-gray-800 mb-3">Actions</h3>
+                  <div className="flex flex-wrap gap-3">
+                    <Link
+                      href={`/admin/testimonials/${testimonial.id}/edit`}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-300"
+                    >
+                      Edit Testimonial
+                    </Link>
+                    <button
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors duration-300 disabled:opacity-70"
+                    >
+                      {isDeleting ? "Deleting..." : "Delete Testimonial"}
+                    </button>
+                    <button
+                      onClick={handleToggleFeatured}
+                      className={`px-4 py-2 rounded-md transition-colors duration-300 ${
+                        testimonial.featured 
+                          ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
+                          : 'bg-green-100 text-green-800 hover:bg-green-200'
+                      }`}
+                    >
+                      {testimonial.featured ? 'Remove from Featured' : 'Mark as Featured'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

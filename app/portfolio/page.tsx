@@ -3,14 +3,8 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Metadata } from "next";
 import { getPortfolioProjects } from "@/app/utils/projectSync";
 import PlaceholderImage from "@/app/components/PlaceholderImage";
-
-export const metadata: Metadata = {
-  title: "Portfolio | LuminaTech LED",
-  description: "Explore our portfolio of LED lighting projects including commercial, residential, and architectural installations.",
-};
 
 export default function PortfolioPage() {
   const [projects, setProjects] = useState<any[]>([]);

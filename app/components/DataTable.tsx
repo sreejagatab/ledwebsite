@@ -285,7 +285,7 @@ export default function DataTable<T>({
                         )}
                         {editPath && (
                           <Link
-                            href={`${editPath}/${item[keyField]}`}
+                            href={`${editPath}/${item[keyField]}/edit`}
                             className="text-indigo-600 hover:text-indigo-900 px-2 py-1 rounded hover:bg-indigo-50"
                           >
                             Edit
