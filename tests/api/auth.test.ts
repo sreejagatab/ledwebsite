@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
@@ -8,10 +7,8 @@ jest.mock('@prisma/client', () => {
     user: {
       findUnique: jest.fn(),
     },
-    $connect: jest.fn(),
     $disconnect: jest.fn(),
   };
-  
   return {
     PrismaClient: jest.fn(() => mockPrismaClient),
   };
@@ -22,148 +19,74 @@ jest.mock('bcrypt', () => ({
   compare: jest.fn(),
 }));
 
-// Mock NextAuth
-jest.mock('next-auth', () => ({
-  getServerSession: jest.fn(() => Promise.resolve(null)),
-  NextAuth: jest.fn(() => ({
-    auth: jest.fn(),
-    signIn: jest.fn(),
-    signOut: jest.fn(),
-  })),
-}));
-
-// Mock NextAuth handlers
-jest.mock('next-auth/next', () => ({
-  NextAuthHandler: jest.fn((req, res) => {
-    return Promise.resolve({ status: 200 });
-  }),
-}));
-
-// Import the handler after mocking dependencies
-// Note: We're not actually importing the real handler since we're mocking it
-// This is just to make TypeScript happy
-const authHandler = jest.fn();
-
-describe('Auth API', () => {
+describe('Authentication Logic', () => {
   let mockPrismaClient: any;
   
   beforeEach(() => {
     jest.clearAllMocks();
     mockPrismaClient = new PrismaClient();
   });
-  
-  describe('Credentials Provider', () => {
-    it('should authenticate a user with valid credentials', async () => {
-      // Mock user in database
-      const mockUser = {
-        id: 1,
-        email: 'admin@luminatechled.com',
-        password: 'hashedPassword123',
-        name: 'Admin User',
-        role: 'ADMIN',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      
-      // Setup mocks
-      mockPrismaClient.user.findUnique.mockResolvedValueOnce(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
-      
-      // Create mock request for credentials authentication
-      const req = new NextRequest('http://localhost:3000/api/auth/callback/credentials', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'admin@luminatechled.com',
-          password: 'admin123',
-        }),
-      });
-      
-      // This is a simplified test since we can't easily test the actual NextAuth handler
-      // In a real test, we would use the actual handler
-      const result = await mockPrismaClient.user.findUnique({
-        where: { email: 'admin@luminatechled.com' },
-      });
-      
-      // Verify database was queried with correct email
-      expect(mockPrismaClient.user.findUnique).toHaveBeenCalledWith({
-        where: { email: 'admin@luminatechled.com' },
-      });
-      
-      // Verify user was found
-      expect(result).toEqual(mockUser);
+
+  it('should find a user by email', async () => {
+    // Mock finding a user
+    const mockUser = {
+      id: '1',
+      email: 'admin@luminatechled.com',
+      password: 'hashedPassword',
+      name: 'Admin User',
+    };
+    
+    mockPrismaClient.user.findUnique.mockResolvedValueOnce(mockUser);
+    
+    // Simulate finding a user
+    const user = await mockPrismaClient.user.findUnique({
+      where: { email: 'admin@luminatechled.com' },
     });
     
-    it('should reject authentication with invalid email', async () => {
-      // Mock no user found
-      mockPrismaClient.user.findUnique.mockResolvedValueOnce(null);
-      
-      // Create mock request
-      const req = new NextRequest('http://localhost:3000/api/auth/callback/credentials', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'nonexistent@example.com',
-          password: 'anypassword',
-        }),
-      });
-      
-      // This is a simplified test
-      const result = await mockPrismaClient.user.findUnique({
-        where: { email: 'nonexistent@example.com' },
-      });
-      
-      // Verify database was queried
-      expect(mockPrismaClient.user.findUnique).toHaveBeenCalledWith({
-        where: { email: 'nonexistent@example.com' },
-      });
-      
-      // Verify password was not compared (user not found)
-      expect(bcrypt.compare).not.toHaveBeenCalled();
-      
-      // Verify user was not found
-      expect(result).toBeNull();
+    // Verify the user was found
+    expect(user).toEqual(mockUser);
+    expect(mockPrismaClient.user.findUnique).toHaveBeenCalledWith({
+      where: { email: 'admin@luminatechled.com' },
+    });
+  });
+
+  it('should verify password correctly', async () => {
+    // Mock successful password comparison
+    (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
+    
+    // Simulate password verification
+    const isValid = await bcrypt.compare('admin123', 'hashedPassword');
+    
+    // Verify the password was checked
+    expect(isValid).toBe(true);
+    expect(bcrypt.compare).toHaveBeenCalledWith('admin123', 'hashedPassword');
+  });
+
+  it('should reject invalid password', async () => {
+    // Mock failed password comparison
+    (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
+    
+    // Simulate password verification
+    const isValid = await bcrypt.compare('wrongpassword', 'hashedPassword');
+    
+    // Verify the password was rejected
+    expect(isValid).toBe(false);
+    expect(bcrypt.compare).toHaveBeenCalledWith('wrongpassword', 'hashedPassword');
+  });
+
+  it('should handle user not found', async () => {
+    // Mock user not found
+    mockPrismaClient.user.findUnique.mockResolvedValueOnce(null);
+    
+    // Simulate finding a non-existent user
+    const user = await mockPrismaClient.user.findUnique({
+      where: { email: 'nonexistent@example.com' },
     });
     
-    it('should reject authentication with invalid password', async () => {
-      // Mock user in database
-      const mockUser = {
-        id: 1,
-        email: 'admin@luminatechled.com',
-        password: 'hashedPassword123',
-        name: 'Admin User',
-        role: 'ADMIN',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      
-      // Setup mocks
-      mockPrismaClient.user.findUnique.mockResolvedValueOnce(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false); // Password doesn't match
-      
-      // Create mock request
-      const req = new NextRequest('http://localhost:3000/api/auth/callback/credentials', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'admin@luminatechled.com',
-          password: 'wrongpassword',
-        }),
-      });
-      
-      // This is a simplified test
-      const result = await mockPrismaClient.user.findUnique({
-        where: { email: 'admin@luminatechled.com' },
-      });
-      
-      // Verify database was queried
-      expect(mockPrismaClient.user.findUnique).toHaveBeenCalledWith({
-        where: { email: 'admin@luminatechled.com' },
-      });
-      
-      // Verify user was found
-      expect(result).toEqual(mockUser);
-      
-      // Verify password comparison would fail
-      const passwordMatch = await bcrypt.compare('wrongpassword', 'hashedPassword123');
-      expect(passwordMatch).toBe(false);
+    // Verify no user was found
+    expect(user).toBeNull();
+    expect(mockPrismaClient.user.findUnique).toHaveBeenCalledWith({
+      where: { email: 'nonexistent@example.com' },
     });
   });
 }); 

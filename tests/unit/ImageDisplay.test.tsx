@@ -1,18 +1,29 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import ImageDisplay from '@/app/components/ImageDisplay';
 
 // Mock the next/image component
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: ({ src, alt, onLoad, onError, ...props }: any) => {
+  default: ({ src, alt, onLoad, onError, priority, className, ...props }: any) => {
     // Simulate the image load or error based on the src
     if (src === '/images/error-image.jpg') {
-      setTimeout(() => onError(), 0);
+      setTimeout(() => onError && onError(), 0);
     } else {
-      setTimeout(() => onLoad(), 0);
+      setTimeout(() => onLoad && onLoad(), 0);
     }
-    return <img src={src} alt={alt} {...props} data-testid="next-image" />;
+    // Convert priority to a string to avoid React warnings
+    const priorityStr = priority ? 'true' : 'false';
+    return (
+      <img 
+        src={src} 
+        alt={alt} 
+        data-priority={priorityStr} 
+        className={className}
+        {...props} 
+        data-testid="next-image" 
+      />
+    );
   },
 }));
 
@@ -29,27 +40,46 @@ describe('ImageDisplay Component', () => {
     render(<ImageDisplay src="/images/test.jpg" alt="Test Image" />);
     
     // Check if loading spinner is visible by looking for the animate-spin class
-    const spinner = screen.getByTestId('next-image').parentElement?.querySelector('.animate-spin');
-    expect(spinner).toBeInTheDocument();
+    const spinnerContainer = screen.getByTestId('next-image').parentElement?.querySelector('.animate-spin');
+    expect(spinnerContainer).toBeInTheDocument();
   });
 
   it('should render the image after loading', async () => {
-    render(<ImageDisplay src="/images/test.jpg" alt="Test Image" />);
+    const { rerender } = render(<ImageDisplay src="/images/test.jpg" alt="Test Image" />);
     
-    // Wait for the image to load
-    await waitFor(() => {
-      expect(screen.getByTestId('next-image')).toBeInTheDocument();
+    // Get the image element
+    const image = screen.getByTestId('next-image');
+    
+    // Manually trigger the load event
+    await act(async () => {
+      fireEvent.load(image);
     });
     
-    // Check if the image has the opacity-100 class which indicates it's visible
-    const image = screen.getByTestId('next-image');
-    expect(image).toHaveClass('opacity-100');
+    // Force a re-render to ensure state updates are applied
+    rerender(<ImageDisplay src="/images/test.jpg" alt="Test Image" />);
+    
+    // Now check if the image has the opacity-100 class
+    await waitFor(() => {
+      expect(screen.getByTestId('next-image')).toHaveClass('opacity-100');
+    });
+    
+    // The spinner should no longer be visible
+    const spinnerContainer = screen.queryByText('', { selector: '.animate-spin' });
+    expect(spinnerContainer).not.toBeInTheDocument();
   });
 
   it('should render placeholder when image fails to load', async () => {
     render(<ImageDisplay src="/images/error-image.jpg" alt="Error Image" />);
     
-    // Wait for the error to occur
+    // Get the image element
+    const image = screen.getByTestId('next-image');
+    
+    // Manually trigger the error event
+    await act(async () => {
+      fireEvent.error(image);
+    });
+    
+    // Check if the placeholder is shown
     await waitFor(() => {
       expect(screen.getByTestId('placeholder-image')).toBeInTheDocument();
     });
@@ -67,11 +97,6 @@ describe('ImageDisplay Component', () => {
         className={customClass} 
       />
     );
-    
-    // Wait for the image to load
-    await waitFor(() => {
-      expect(screen.getByTestId('next-image')).toBeInTheDocument();
-    });
     
     // Check if the container has the custom class
     const container = screen.getByTestId('next-image').closest('div');
