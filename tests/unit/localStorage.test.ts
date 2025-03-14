@@ -73,28 +73,30 @@ describe('localStorage Utility Functions', () => {
       const testData = [{ id: '1', name: 'Test Item' }];
       localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(testData));
 
-      const result = getLocalData(STORAGE_KEYS.PROJECTS);
+      const result = getLocalData(STORAGE_KEYS.PROJECTS, null);
 
       expect(localStorageMock.getItem).toHaveBeenCalledWith(STORAGE_KEYS.PROJECTS);
       expect(result).toEqual(testData);
     });
 
-    it('should return null if no data is found', () => {
+    it('should return default value if no data is found', () => {
       localStorageMock.getItem.mockReturnValueOnce(null);
-
-      const result = getLocalData(STORAGE_KEYS.PROJECTS);
+      const defaultValue = [];
+      
+      const result = getLocalData(STORAGE_KEYS.PROJECTS, defaultValue);
 
       expect(localStorageMock.getItem).toHaveBeenCalledWith(STORAGE_KEYS.PROJECTS);
-      expect(result).toBeNull();
+      expect(result).toBe(defaultValue);
     });
 
     it('should handle invalid JSON', () => {
       localStorageMock.getItem.mockReturnValueOnce('invalid-json');
-
-      const result = getLocalData(STORAGE_KEYS.PROJECTS);
+      const defaultValue = [];
+      
+      const result = getLocalData(STORAGE_KEYS.PROJECTS, defaultValue);
 
       expect(localStorageMock.getItem).toHaveBeenCalledWith(STORAGE_KEYS.PROJECTS);
-      expect(result).toBeNull();
+      expect(result).toBe(defaultValue);
     });
   });
 }); 
