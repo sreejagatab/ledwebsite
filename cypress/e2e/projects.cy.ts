@@ -1,14 +1,10 @@
 describe('Projects Management', () => {
   beforeEach(() => {
     // Login before each test
-    cy.visit('/admin/login');
-    cy.get('input[name="email"]').type('admin@luminatechled.com');
-    cy.get('input[name="password"]').type('admin123');
-    cy.get('button[type="submit"]').click();
+    cy.login();
     
     // Navigate to projects page
-    cy.visit('/admin/projects');
-    cy.url().should('include', '/admin/projects');
+    cy.navigateTo('Projects');
   });
 
   it('should display the projects list', () => {
@@ -42,12 +38,14 @@ describe('Projects Management', () => {
     cy.url().should('include', '/admin/projects/new');
     
     // Fill in the form
-    cy.get('input[name="title"]').type('Test Project');
-    cy.get('textarea[name="description"]').type('This is a test project created by Cypress');
-    cy.get('input[name="client"]').type('Cypress Testing Inc.');
+    cy.fillForm({
+      title: 'Test Project',
+      description: 'This is a test project created by Cypress',
+      client: 'Cypress Testing Inc.'
+    });
     
-    // Submit the form
-    cy.get('button[type="submit"]').click();
+    // Submit the form and verify success
+    cy.submitFormAndVerifySuccess();
     
     // Should be redirected back to projects list
     cy.url().should('include', '/admin/projects');
@@ -64,10 +62,12 @@ describe('Projects Management', () => {
     cy.url().should('include', '/admin/projects/').and('include', '/edit');
     
     // Update the title
-    cy.get('input[name="title"]').clear().type('Updated Project Title');
+    cy.fillForm({
+      title: 'Updated Project Title'
+    });
     
-    // Submit the form
-    cy.get('button[type="submit"]').click();
+    // Submit the form and verify success
+    cy.submitFormAndVerifySuccess();
     
     // Should be redirected back to projects list
     cy.url().should('include', '/admin/projects');
@@ -83,11 +83,8 @@ describe('Projects Management', () => {
       projectName = $el.text();
     });
     
-    // Click on the first project's delete button
-    cy.get('table tbody tr').first().contains('Delete').click();
-    
-    // Confirm deletion in the modal
-    cy.get('button').contains('Confirm').click();
+    // Delete the first project and confirm
+    cy.deleteItemAndConfirm('table tbody tr:first-child');
     
     // Project should no longer be in the list
     cy.contains(projectName).should('not.exist');

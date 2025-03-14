@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ProjectForm from '@/app/components/ProjectForm';
 import { getLocalData, setLocalData, STORAGE_KEYS } from '@/app/utils/localStorage';
+import { syncAdminProjectsWithPortfolio } from '@/app/utils/projectSync';
 
 interface GalleryImage {
   id: string;
@@ -27,13 +28,26 @@ interface Project {
   createdAt: Date;
 }
 
+interface SubmitStatus {
+  success: boolean;
+  message: string;
+}
+
 export default function NewProject() {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [formData, setFormData] = useState<any>({
+    title: '',
+    description: '',
+    category: '',
+    featured: false,
+    mainImage: '',
+    galleryImages: []
+  });
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<SubmitStatus | null>(null);
   
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -41,17 +55,25 @@ export default function NewProject() {
     }
   }, [status, router]);
   
-  const handleSubmit = async (formData: Omit<Project, 'id' | 'createdAt'>) => {
-    setIsSubmitting(true);
-    setSubmitError(null);
-    setSubmitSuccess(false);
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
     try {
-      // In a real application, you would call your API to create the project
-      console.log('Creating project:', formData);
+      // Validate required fields
+      if (!formData.title || !formData.category) {
+        setSubmitStatus({ success: false, message: 'Title and category are required' });
+        return;
+      }
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      setSubmitting(true);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Generate a unique ID and slug for the new project
       const newProjectId = `project-${Date.now()}`;
@@ -61,8 +83,10 @@ export default function NewProject() {
       const newProject = {
         id: newProjectId,
         ...formData,
+        galleryImages,
         slug,
-        createdAt: new Date()
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
       // Get current projects from localStorage
@@ -74,18 +98,27 @@ export default function NewProject() {
       // Save updated projects to localStorage
       setLocalData(STORAGE_KEYS.PROJECTS, updatedProjects);
       
+      // Sync with portfolio
+      syncAdminProjectsWithPortfolio();
+      
       // Show success message
-      setSubmitSuccess(true);
+      setSubmitStatus({ 
+        success: true, 
+        message: 'Project created successfully' 
+      });
       
       // Redirect after a short delay
       setTimeout(() => {
-        router.push(`/admin/projects/${newProjectId}`);
+        router.push('/admin/projects');
       }, 1500);
     } catch (error) {
       console.error('Error creating project:', error);
-      setSubmitError('Failed to create project. Please try again.');
+      setSubmitStatus({ 
+        success: false, 
+        message: 'Failed to create project. Please try again.' 
+      });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
   
@@ -98,72 +131,135 @@ export default function NewProject() {
   }
   
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Add New Project</h1>
-          <Link
-            href="/admin/projects"
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Cancel
-          </Link>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Create New Project</h1>
+        <Link 
+          href="/admin/projects" 
+          className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
+        >
+          Back to Projects
+        </Link>
+      </div>
+      
+      {submitStatus && (
+        <div className={`mb-4 p-4 rounded-md ${
+          submitStatus.success ? 'bg-green-50 text-green-800 border border-green-200' : 
+          'bg-red-50 text-red-800 border border-red-200'
+        }`}>
+          {submitStatus.message}
         </div>
-        
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Project Information</h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">Enter the details for the new project.</p>
-          </div>
-          
-          <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-            {submitSuccess && (
-              <div className="mb-4 bg-green-50 border-l-4 border-green-400 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-green-700">Project created successfully!</p>
-                  </div>
-                </div>
+      )}
+      
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="p-6">
+          <form onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Project Title *
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title || ''}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
               </div>
-            )}
-            
-            {submitError && (
-              <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{submitError}</p>
-                  </div>
-                </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category *
+                </label>
+                <select
+                  name="category"
+                  value={formData.category || ''}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select a category</option>
+                  <option value="Commercial">Commercial</option>
+                  <option value="Residential">Residential</option>
+                  <option value="Architectural">Architectural</option>
+                  <option value="Hospitality">Hospitality</option>
+                  <option value="Industrial">Industrial</option>
+                </select>
               </div>
-            )}
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location || ''}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description *
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description || ''}
+                  onChange={handleFormChange}
+                  rows={4}
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                ></textarea>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Main Image URL
+                </label>
+                <input
+                  type="text"
+                  name="imageSrc"
+                  value={formData.imageSrc || ''}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+                  <input
+                    type="checkbox"
+                    name="featured"
+                    checked={formData.featured || false}
+                    onChange={(e) => setFormData({...formData, featured: e.target.checked})}
+                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  Featured Project
+                </label>
+              </div>
+            </div>
             
-            <ProjectForm
-              initialData={{
-                title: '',
-                slug: '',
-                description: '',
-                category: '',
-                featured: false,
-                mainImage: '',
-                completionDate: new Date()
-              }}
-              galleryImages={[]}
-              onSubmit={handleSubmit}
-              isSubmitting={isSubmitting}
-              submitError={submitError || undefined}
-              submitSuccess={submitSuccess}
-            />
-          </div>
+            <div className="mt-8 flex justify-end">
+              <button
+                type="button"
+                onClick={() => router.push('/admin/projects')}
+                className="mr-4 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                {submitting ? 'Creating...' : 'Create Project'}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

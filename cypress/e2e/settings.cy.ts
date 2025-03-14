@@ -1,14 +1,10 @@
 describe('Settings Management', () => {
   beforeEach(() => {
     // Login before each test
-    cy.visit('/admin/login');
-    cy.get('input[name="email"]').type('admin@luminatechled.com');
-    cy.get('input[name="password"]').type('admin123');
-    cy.get('button[type="submit"]').click();
+    cy.login();
     
     // Navigate to settings page
-    cy.visit('/admin/settings');
-    cy.url().should('include', '/admin/settings');
+    cy.navigateTo('Settings');
   });
 
   it('should display the settings page with tabs', () => {
@@ -25,20 +21,15 @@ describe('Settings Management', () => {
     // Click on the General tab
     cy.contains('General').click();
     
-    // Update company name
-    cy.get('input[name="companyName"]').clear().type('LuminaTech LED Testing');
+    // Update settings
+    cy.fillForm({
+      companyName: 'LuminaTech LED Testing',
+      address: '123 Cypress Test St, Testing City, TS 12345',
+      phone: '(555) 123-4567'
+    });
     
-    // Update address
-    cy.get('textarea[name="address"]').clear().type('123 Cypress Test St, Testing City, TS 12345');
-    
-    // Update phone
-    cy.get('input[name="phone"]').clear().type('(555) 123-4567');
-    
-    // Submit the form
-    cy.get('button[type="submit"]').click();
-    
-    // Should show success message
-    cy.contains('Settings saved successfully').should('be.visible');
+    // Submit the form and verify success
+    cy.submitFormAndVerifySuccess();
     
     // Reload the page to verify persistence
     cy.reload();
@@ -53,17 +44,14 @@ describe('Settings Management', () => {
     // Click on the Email tab
     cy.contains('Email').click();
     
-    // Update contact email
-    cy.get('input[name="contactEmail"]').clear().type('contact@luminatechled-test.com');
+    // Update settings
+    cy.fillForm({
+      contactEmail: 'contact@luminatechled-test.com',
+      supportEmail: 'support@luminatechled-test.com'
+    });
     
-    // Update support email
-    cy.get('input[name="supportEmail"]').clear().type('support@luminatechled-test.com');
-    
-    // Submit the form
-    cy.get('button[type="submit"]').click();
-    
-    // Should show success message
-    cy.contains('Settings saved successfully').should('be.visible');
+    // Submit the form and verify success
+    cy.submitFormAndVerifySuccess();
     
     // Reload the page to verify persistence
     cy.reload();
@@ -78,20 +66,15 @@ describe('Settings Management', () => {
     // Click on the Social Media tab
     cy.contains('Social Media').click();
     
-    // Update Facebook URL
-    cy.get('input[name="facebook"]').clear().type('https://facebook.com/luminatech-test');
+    // Update settings
+    cy.fillForm({
+      facebook: 'https://facebook.com/luminatech-test',
+      instagram: 'https://instagram.com/luminatech-test',
+      linkedin: 'https://linkedin.com/company/luminatech-test'
+    });
     
-    // Update Instagram URL
-    cy.get('input[name="instagram"]').clear().type('https://instagram.com/luminatech-test');
-    
-    // Update LinkedIn URL
-    cy.get('input[name="linkedin"]').clear().type('https://linkedin.com/company/luminatech-test');
-    
-    // Submit the form
-    cy.get('button[type="submit"]').click();
-    
-    // Should show success message
-    cy.contains('Settings saved successfully').should('be.visible');
+    // Submit the form and verify success
+    cy.submitFormAndVerifySuccess();
     
     // Reload the page to verify persistence
     cy.reload();

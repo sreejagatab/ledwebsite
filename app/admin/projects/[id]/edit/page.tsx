@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import ProjectForm from "@/app/components/ProjectForm";
 import { getLocalData, setLocalData, STORAGE_KEYS } from "@/app/utils/localStorage";
+import { syncAdminProjectsWithPortfolio } from '@/app/utils/projectSync';
 
 interface GalleryImage {
   id: string;
@@ -27,6 +28,11 @@ interface Project {
   createdAt: Date;
 }
 
+interface SubmitStatus {
+  success: boolean;
+  message: string;
+}
+
 export default function EditProject() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -34,11 +40,11 @@ export default function EditProject() {
   const projectId = params.id as string;
   
   const [project, setProject] = useState<Project | null>(null);
+  const [formData, setFormData] = useState<any>({});
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<SubmitStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
@@ -48,116 +54,86 @@ export default function EditProject() {
       return;
     }
     
+    // Fetch project data
+    const fetchProject = () => {
+      try {
+        setIsLoading(true);
+        
+        // Get projects from localStorage
+        const projects = getLocalData<Project[]>(STORAGE_KEYS.PROJECTS, []);
+        const foundProject = projects.find(p => p.id === projectId);
+        
+        if (foundProject) {
+          setProject(foundProject);
+          setFormData(foundProject);
+          setGalleryImages(foundProject.galleryImages || []);
+        } else {
+          setError("Project not found");
+        }
+      } catch (err) {
+        console.error("Error fetching project:", err);
+        setError("Failed to load project");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
     if (status === "authenticated") {
       fetchProject();
     }
-  }, [status, projectId, router]);
-  
-  const fetchProject = async () => {
-    setIsLoading(true);
-    setError(null);
+  }, [projectId, router, status]);
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
     try {
-      // In a real application, you would call your API to fetch the project
-      // For now, we'll get it from localStorage
-      
-      // Get projects from localStorage
-      const projects = getLocalData<any[]>(STORAGE_KEYS.PROJECTS, []);
-      
-      // Find the project by ID
-      const foundProject = projects.find(p => p.id === projectId);
-      
-      if (!foundProject) {
-        setError("Project not found");
-        setIsLoading(false);
+      // Validate required fields
+      if (!formData.title || !formData.category) {
+        setSubmitStatus({ success: false, message: 'Title and category are required' });
         return;
       }
       
-      // Convert date strings back to Date objects
-      const formattedProject = {
-        ...foundProject,
-        completionDate: foundProject.completionDate ? new Date(foundProject.completionDate) : new Date(),
-        createdAt: foundProject.createdAt ? new Date(foundProject.createdAt) : new Date()
-      };
+      setSubmitting(true);
       
-      setProject(formattedProject);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Set gallery images
-      if (Array.isArray(foundProject.galleryImages)) {
-        const formattedGalleryImages = foundProject.galleryImages.map(image => {
-          if (typeof image === "string") {
-            return {
-              id: Math.random().toString(36).substring(2, 9),
-              url: image,
-              alt: null,
-              isFeatured: false
-            };
-          }
-          return image;
-        });
-        
-        setGalleryImages(formattedGalleryImages);
-      }
-    } catch (error) {
-      console.error("Error fetching project:", error);
-      setError("Failed to load project details. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleSubmit = async (formData: Omit<Project, "id" | "createdAt">) => {
-    setIsSubmitting(true);
-    setSubmitError(null);
-    setSubmitSuccess(false);
-    
-    try {
-      // In a real application, you would call your API to update the project
-      console.log("Updating project:", { ...formData, galleryImages });
+      // Get existing projects
+      const existingProjects = getLocalData(STORAGE_KEYS.PROJECTS, []);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Find and update the project
+      const updatedProjects = existingProjects.map((p: any) => 
+        p.id === projectId ? { ...p, ...formData, galleryImages, updatedAt: new Date() } : p
+      );
       
-      // Get current projects from localStorage
-      const projects = getLocalData<Project[]>(STORAGE_KEYS.PROJECTS, []);
-      
-      // Find the project index
-      const projectIndex = projects.findIndex(p => p.id === projectId);
-      
-      if (projectIndex === -1) {
-        throw new Error("Project not found");
-      }
-      
-      // Create the updated project object
-      const updatedProject = {
-        ...projects[projectIndex],
-        ...formData,
-        galleryImages,
-        updatedAt: new Date()
-      };
-      
-      // Update the project in the array
-      const updatedProjects = [...projects];
-      updatedProjects[projectIndex] = updatedProject;
-      
-      // Save updated projects to localStorage
+      // Save to localStorage
       setLocalData(STORAGE_KEYS.PROJECTS, updatedProjects);
       
-      // Update local state
-      setProject(updatedProject);
+      // Sync with portfolio
+      syncAdminProjectsWithPortfolio();
       
-      // Show success message
-      setSubmitSuccess(true);
+      setSubmitStatus({ 
+        success: true, 
+        message: 'Project updated successfully' 
+      });
       
-      // Reset success message after a delay
+      // Redirect after a short delay
       setTimeout(() => {
-        setSubmitSuccess(false);
-      }, 3000);
+        router.push('/admin/projects');
+      }, 1500);
     } catch (error) {
-      console.error("Error updating project:", error);
-      setSubmitError("Failed to update project. Please try again.");
+      console.error('Error updating project:', error);
+      setSubmitStatus({ 
+        success: false, 
+        message: 'Failed to update project. Please try again.' 
+      });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
   
@@ -218,8 +194,8 @@ export default function EditProject() {
           </div>
           
           <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-            {submitSuccess && (
-              <div className="mb-4 bg-green-50 border-l-4 border-green-400 p-4">
+            {submitStatus && (
+              <div className={`mb-4 ${submitStatus.success ? 'bg-green-50 border-l-4 border-green-400' : 'bg-red-50 border-l-4 border-red-400'} p-4`}>
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -227,22 +203,7 @@ export default function EditProject() {
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm text-green-700">Project updated successfully!</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {submitError && (
-              <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{submitError}</p>
+                    <p className="text-sm text-green-700">{submitStatus.message}</p>
                   </div>
                 </div>
               </div>
@@ -260,9 +221,9 @@ export default function EditProject() {
               }}
               galleryImages={galleryImages}
               onSubmit={handleSubmit}
-              isSubmitting={isSubmitting}
-              submitError={submitError || undefined}
-              submitSuccess={submitSuccess}
+              isSubmitting={submitting}
+              submitError={submitStatus?.message}
+              submitSuccess={submitStatus?.success}
             />
           </div>
         </div>

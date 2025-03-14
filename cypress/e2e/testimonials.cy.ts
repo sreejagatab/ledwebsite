@@ -1,14 +1,10 @@
 describe('Testimonials Management', () => {
   beforeEach(() => {
     // Login before each test
-    cy.visit('/admin/login');
-    cy.get('input[name="email"]').type('admin@luminatechled.com');
-    cy.get('input[name="password"]').type('admin123');
-    cy.get('button[type="submit"]').click();
+    cy.login();
     
     // Navigate to testimonials page
-    cy.visit('/admin/testimonials');
-    cy.url().should('include', '/admin/testimonials');
+    cy.navigateTo('Testimonials');
   });
 
   it('should display the testimonials list', () => {
@@ -42,16 +38,16 @@ describe('Testimonials Management', () => {
     cy.url().should('include', '/admin/testimonials/new');
     
     // Fill in the form
-    cy.get('input[name="name"]').type('John Cypress');
-    cy.get('input[name="company"]').type('Cypress Testing Inc.');
-    cy.get('textarea[name="content"]').type('This is a test testimonial created by Cypress');
-    cy.get('input[name="rating"]').clear().type('5');
+    cy.fillForm({
+      name: 'John Cypress',
+      company: 'Cypress Testing Inc.',
+      content: 'This is a test testimonial created by Cypress',
+      rating: '5',
+      isFeatured: true
+    });
     
-    // Toggle featured status
-    cy.get('input[type="checkbox"]').check();
-    
-    // Submit the form
-    cy.get('button[type="submit"]').click();
+    // Submit the form and verify success
+    cy.submitFormAndVerifySuccess();
     
     // Should be redirected back to testimonials list
     cy.url().should('include', '/admin/testimonials');
@@ -68,10 +64,12 @@ describe('Testimonials Management', () => {
     cy.url().should('include', '/admin/testimonials/').and('include', '/edit');
     
     // Update the name
-    cy.get('input[name="name"]').clear().type('Updated Testimonial Name');
+    cy.fillForm({
+      name: 'Updated Testimonial Name'
+    });
     
-    // Submit the form
-    cy.get('button[type="submit"]').click();
+    // Submit the form and verify success
+    cy.submitFormAndVerifySuccess();
     
     // Should be redirected back to testimonials list
     cy.url().should('include', '/admin/testimonials');
@@ -95,11 +93,8 @@ describe('Testimonials Management', () => {
       testimonialName = $el.text();
     });
     
-    // Click on the first testimonial's delete button
-    cy.get('table tbody tr').first().contains('Delete').click();
-    
-    // Confirm deletion in the modal
-    cy.get('button').contains('Confirm').click();
+    // Delete the first testimonial and confirm
+    cy.deleteItemAndConfirm('table tbody tr:first-child');
     
     // Testimonial should no longer be in the list
     cy.contains(testimonialName).should('not.exist');

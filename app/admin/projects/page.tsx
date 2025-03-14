@@ -8,6 +8,7 @@ import DataTable from '@/app/components/DataTable';
 import Image from 'next/image';
 import { getLocalData, setLocalData, STORAGE_KEYS } from '@/app/utils/localStorage';
 import PlaceholderImage from '@/app/components/PlaceholderImage';
+import { syncAdminProjectsWithPortfolio } from '@/app/utils/projectSync';
 
 // Types
 interface Project {
@@ -30,6 +31,7 @@ export default function AdminProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [alert, setAlert] = useState<{ type: string; message: string } | null>(null);
   
   useEffect(() => {
     // Check if user is authenticated
@@ -149,23 +151,39 @@ export default function AdminProjects() {
     setSearchTerm(term);
   };
   
-  const handleDelete = async (project: Project) => {
+  const handleDelete = async (id: string) => {
+    console.log("Deleting project:", id);
+    
     try {
-      // In a real application, you would call your API to delete the project
-      console.log('Deleting project:', project.id);
-      
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       // Update local state
-      const updatedProjects = projects.filter(p => p.id !== project.id);
+      const updatedProjects = projects.filter(project => project.id !== id);
       setProjects(updatedProjects);
       
       // Update localStorage
       setLocalData(STORAGE_KEYS.PROJECTS, updatedProjects);
+      
+      // Sync with portfolio
+      syncAdminProjectsWithPortfolio();
+      
+      // Show success message
+      setAlert({
+        type: 'success',
+        message: 'Project deleted successfully'
+      });
+      
+      // Clear alert after 3 seconds
+      setTimeout(() => {
+        setAlert(null);
+      }, 3000);
     } catch (error) {
-      console.error('Error deleting project:', error);
-      alert('Failed to delete project. Please try again.');
+      console.error("Error deleting project:", error);
+      setAlert({
+        type: 'error',
+        message: 'Failed to delete project'
+      });
     }
   };
   
@@ -257,18 +275,6 @@ export default function AdminProjects() {
     }
   ];
   
-  // Define actions for DataTable
-  const actions = [
-    {
-      label: project => project.featured ? 'Unfeature' : 'Feature',
-      onClick: handleToggleFeatured,
-      className: (project: Project) => 
-        project.featured 
-          ? 'text-yellow-600 hover:text-yellow-900 px-2 py-1 rounded hover:bg-yellow-50' 
-          : 'text-gray-600 hover:text-gray-900 px-2 py-1 rounded hover:bg-gray-50'
-    }
-  ];
-  
   if (status === 'loading') {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -278,35 +284,70 @@ export default function AdminProjects() {
   }
   
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-900">Projects</h1>
-          <Link
-            href="/admin/projects/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Add Project
-          </Link>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Projects</h1>
+        <Link 
+          href="/admin/projects/new" 
+          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Add New Project
+        </Link>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="py-4">
-          <DataTable
-            data={filteredProjects}
-            columns={columns}
-            keyField="id"
-            searchTerm={searchTerm}
-            onSearch={handleSearch}
-            loading={loading}
-            emptyMessage="No projects found"
-            viewPath="/admin/projects"
-            editPath="/admin/projects"
-            onDelete={handleDelete}
-            actions={actions}
-          />
+      {alert && (
+        <div className={`mb-4 p-4 rounded-md ${
+          alert.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 
+          'bg-red-50 text-red-800 border border-red-200'
+        }`}>
+          {alert.message}
         </div>
+      )}
+      
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        {/* Search and filter */}
+        <div className="p-4 border-b">
+          <div className="flex items-center">
+            <div className="relative flex-grow">
+              <input
+                type="text"
+                placeholder="Search projects..."
+                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <div className="absolute right-3 top-2.5 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Projects list */}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <DataTable
+              data={filteredProjects}
+              columns={columns}
+              keyField="id"
+              onDelete={handleDelete}
+              editPath="/admin/projects/:id/edit"
+              actions={[
+                {
+                  label: 'Toggle Featured',
+                  onClick: handleToggleFeatured,
+                  className: 'text-purple-600 hover:text-purple-800 px-2 py-1 rounded hover:bg-gray-50'
+                }
+              ]}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
