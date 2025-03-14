@@ -1,117 +1,107 @@
-# LuminaTech LED - Professional LED Installation Services Website
+# LED Website Admin Dashboard
 
-A modern, responsive website for an LED installations business built with Next.js, React, TypeScript, and Tailwind CSS.
+A modern admin dashboard for managing an LED lighting company's website content, including projects, testimonials, inquiries, and settings.
 
 ## Features
 
-- **Modern Design**: Sleek, professional design with responsive layouts for all devices
-- **Complete Business Website**: Includes Home, About Us, Services, Portfolio, and Contact pages
-- **Performance Optimized**: Built with Next.js for optimal performance and SEO
-- **Responsive Design**: Looks great on desktop, tablet, and mobile devices
-- **Interactive Elements**: Engaging UI components and animations
-- **Contact Form**: Functional contact form with validation
-- **Portfolio Showcase**: Showcase for LED installation projects
+- **Authentication**: Secure login system using NextAuth.js
+- **Dashboard**: Overview of recent projects, inquiries, and quick stats
+- **Projects Management**: Create, view, edit, and delete lighting projects
+- **Testimonials Management**: Manage customer testimonials
+- **Inquiries Management**: Track and respond to customer inquiries
+- **Settings**: Configure website settings
 
-## Tech Stack
+## Technical Implementation
 
-- **Framework**: Next.js 15
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Deployment**: Ready for deployment on Vercel, Netlify, or any hosting service
+### Data Persistence with localStorage
+
+This project uses browser localStorage for data persistence, making it easy to demonstrate functionality without requiring a backend server. Key features of the localStorage implementation:
+
+- **Storage Keys**: Centralized storage keys in `app/utils/localStorage.ts`
+- **Type Safety**: TypeScript generics for type-safe data retrieval
+- **Date Handling**: Automatic conversion between Date objects and strings
+- **Default Values**: Support for default values when data doesn't exist
+
+### Components
+
+- **DataTable**: Reusable table component with sorting, filtering, and actions
+- **DashboardStats**: Statistics cards for the dashboard
+- **ProjectForm**: Form for creating and editing projects
+- **TestimonialForm**: Form for creating and editing testimonials
+- **PlaceholderImage**: Component for displaying placeholders when images are missing
+
+### Pages
+
+- **Dashboard**: Overview of website activity
+- **Projects**: List, create, view, edit, and delete projects
+- **Testimonials**: List, create, view, edit, and delete testimonials
+- **Inquiries**: List, view, and manage customer inquiries
+- **Settings**: Configure website settings
 
 ## Getting Started
 
-### Prerequisites
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Run the development server: `npm run dev`
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-- Node.js 18.17 or later
-- npm or yarn
+## localStorage Data Structure
 
-### Installation
+The application uses the following localStorage keys:
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/ledwebsite.git
-   cd ledwebsite
-   ```
+- `led_website_projects`: Array of project objects
+- `led_website_testimonials`: Array of testimonial objects
+- `led_website_inquiries`: Array of inquiry objects
+- `led_website_settings`: Object containing website settings
 
-2. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. Run the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the website.
-
-## Project Structure
-
-```
-ledwebsite/
-├── app/                  # Next.js App Router
-│   ├── about/            # About Us page
-│   ├── contact/          # Contact page
-│   ├── portfolio/        # Portfolio page
-│   ├── services/         # Services page
-│   ├── components/       # Reusable React components
-│   ├── globals.css       # Global styles
-│   ├── layout.tsx        # Root layout component
-│   └── page.tsx          # Home page
-├── public/               # Static assets
-│   └── images/           # Image files
-├── next.config.ts        # Next.js configuration
-├── package.json          # Project dependencies
-├── tsconfig.json         # TypeScript configuration
-└── README.md             # Project documentation
+Example project structure:
+```typescript
+interface Project {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  category: string;
+  featured: boolean;
+  mainImage: string;
+  galleryImages: GalleryImage[];
+  completionDate: Date;
+  createdAt: Date;
+}
 ```
 
-## Customization
-
-### Changing Content
-
-- Edit the text content in the respective page files (`app/page.tsx`, `app/about/page.tsx`, etc.)
-- Update images by replacing files in the `public/images/` directory
-
-### Styling
-
-- Global styles are in `app/globals.css`
-- The website uses Tailwind CSS for styling - refer to the [Tailwind documentation](https://tailwindcss.com/docs) for customization options
-
-### Adding New Pages
-
-1. Create a new directory in the `app/` folder
-2. Add a `page.tsx` file with your page content
-
-## Deployment
-
-This website can be easily deployed to various hosting platforms:
-
-### Vercel (Recommended)
-
-```bash
-npm install -g vercel
-vercel
+Example testimonial structure:
+```typescript
+interface Testimonial {
+  id: string;
+  name: string;
+  position: string;
+  company: string;
+  content: string;
+  imageUrl: string;
+  featured: boolean;
+  projectId?: string;
+  createdAt: Date;
+}
 ```
 
-### Netlify
-
-```bash
-npm install -g netlify-cli
-netlify deploy
+Example inquiry structure:
+```typescript
+interface Inquiry {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+  status: 'new' | 'in-progress' | 'completed';
+  createdAt: Date;
+}
 ```
 
-## License
+## Future Improvements
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Images: Replace placeholder images with your own or properly licensed images
-- Icons: Heroicons (included with Tailwind CSS)
-- Fonts: Inter and Poppins from Google Fonts
+- Replace localStorage with a real backend API
+- Add image upload functionality
+- Implement user roles and permissions
+- Add analytics and reporting features
+- Create a public-facing website to display the managed content

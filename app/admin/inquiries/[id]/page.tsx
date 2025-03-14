@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { format } from "date-fns";
+import { getLocalData, setLocalData, STORAGE_KEYS } from "@/app/utils/localStorage";
 
 interface Inquiry {
   id: string;
@@ -19,14 +21,18 @@ interface Inquiry {
   respondedAt: string | null;
 }
 
-export default function InquiryDetail({ params }: { params: { id: string } }) {
+export default function InquiryDetail() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const params = useParams();
+  const inquiryId = params.id as string;
+  
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -41,89 +47,109 @@ export default function InquiryDetail({ params }: { params: { id: string } }) {
 
   const fetchInquiry = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
-      // In a real app, you would fetch this data from your API
-      // For now, we'll use placeholder data
-      const mockInquiry: Inquiry = {
-        id: params.id,
-        name: "David Wilson",
-        email: "david.wilson@example.com",
-        phone: "+1 (555) 123-4567",
-        company: "Wilson Enterprises",
-        projectType: "Commercial",
-        message: "We're renovating our office space and interested in energy-efficient LED lighting solutions. Please contact me to discuss options.",
-        status: "new",
-        notes: null,
-        createdAt: "2023-12-10",
-        respondedAt: null
+      // In a real application, you would call your API to fetch the inquiry
+      // For now, we'll get it from localStorage
+      
+      // Get inquiries from localStorage
+      const inquiries = getLocalData<any[]>(STORAGE_KEYS.INQUIRIES, []);
+      
+      // Find the inquiry by ID
+      const foundInquiry = inquiries.find(i => i.id === inquiryId);
+      
+      if (!foundInquiry) {
+        setError('Inquiry not found');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Convert date strings back to Date objects
+      const formattedInquiry = {
+        ...foundInquiry,
+        createdAt: foundInquiry.createdAt ? new Date(foundInquiry.createdAt) : new Date()
       };
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setInquiry(mockInquiry);
-      setSelectedStatus(mockInquiry.status);
-      setNotes(mockInquiry.notes || "");
+      setInquiry(formattedInquiry);
+      setSelectedStatus(formattedInquiry.status);
+      setNotes(formattedInquiry.notes || "");
     } catch (error) {
-      console.error("Error fetching inquiry:", error);
-      setError("Failed to load inquiry details. Please try again.");
+      console.error('Error fetching inquiry:', error);
+      setError('Failed to load inquiry details. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeleteInquiry = async () => {
-    if (!window.confirm("Are you sure you want to delete this inquiry? This action cannot be undone.")) {
+  const handleDelete = async () => {
+    // Ask for confirmation
+    const confirmed = window.confirm('Are you sure you want to delete this inquiry? This action cannot be undone.');
+    
+    if (!confirmed) {
       return;
     }
     
     setIsDeleting(true);
+    setDeleteError(null);
+    setDeleteSuccess(false);
     
     try {
-      // In a real app, you would call your API to delete the inquiry
-      // For now, we'll just simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // In a real application, you would call your API to delete the inquiry
+      // For now, we'll remove it from localStorage
       
-      // Redirect to inquiries list after successful deletion
-      router.push("/admin/inquiries");
+      // Get inquiries from localStorage
+      const inquiries = getLocalData<Inquiry[]>(STORAGE_KEYS.INQUIRIES, []);
+      
+      // Filter out the inquiry to delete
+      const updatedInquiries = inquiries.filter(i => i.id !== inquiryId);
+      
+      // Save updated inquiries to localStorage
+      setLocalData(STORAGE_KEYS.INQUIRIES, updatedInquiries);
+      
+      // Show success message
+      setDeleteSuccess(true);
+      
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push('/admin/inquiries');
+      }, 1500);
     } catch (error) {
-      console.error("Error deleting inquiry:", error);
-      alert("Failed to delete inquiry. Please try again.");
+      console.error('Error deleting inquiry:', error);
+      setDeleteError('Failed to delete inquiry. Please try again.');
       setIsDeleting(false);
     }
   };
 
-  const handleUpdateStatus = async () => {
+  const handleUpdateStatus = async (newStatus: string) => {
     if (!inquiry) return;
     
-    setIsSaving(true);
-    setSaveSuccess(false);
-    
     try {
-      // In a real app, you would call your API to update the inquiry
-      // For now, we'll just update the local state
-      const updatedInquiry = {
+      // Get inquiries from localStorage
+      const inquiries = getLocalData<Inquiry[]>(STORAGE_KEYS.INQUIRIES, []);
+      
+      // Find the inquiry and update its status
+      const updatedInquiries = inquiries.map(i => {
+        if (i.id === inquiryId) {
+          return {
+            ...i,
+            status: newStatus
+          };
+        }
+        return i;
+      });
+      
+      // Save updated inquiries to localStorage
+      setLocalData(STORAGE_KEYS.INQUIRIES, updatedInquiries);
+      
+      // Update the local state
+      setInquiry({
         ...inquiry,
-        status: selectedStatus,
-        notes: notes,
-        respondedAt: selectedStatus === "responded" ? new Date().toISOString() : inquiry.respondedAt
-      };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setInquiry(updatedInquiry);
-      setSaveSuccess(true);
-      
-      // Reset success message after 3 seconds
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
+        status: newStatus
+      });
     } catch (error) {
-      console.error("Error updating inquiry:", error);
-      alert("Failed to update inquiry. Please try again.");
-    } finally {
-      setIsSaving(false);
+      console.error('Error updating inquiry status:', error);
+      alert('Failed to update inquiry status. Please try again.');
     }
   };
 
@@ -194,7 +220,7 @@ export default function InquiryDetail({ params }: { params: { id: string } }) {
         </div>
         <div className="flex space-x-3">
           <button
-            onClick={handleDeleteInquiry}
+            onClick={handleDelete}
             disabled={isDeleting}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors duration-300 disabled:opacity-70"
           >
@@ -209,9 +235,15 @@ export default function InquiryDetail({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {saveSuccess && (
+      {deleteSuccess && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-          Inquiry updated successfully!
+          Inquiry deleted successfully!
+        </div>
+      )}
+
+      {deleteError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+          {deleteError}
         </div>
       )}
 
@@ -321,11 +353,11 @@ export default function InquiryDetail({ params }: { params: { id: string } }) {
                 
                 <div className="flex justify-end">
                   <button
-                    onClick={handleUpdateStatus}
-                    disabled={isSaving}
+                    onClick={() => handleUpdateStatus(selectedStatus)}
+                    disabled={isDeleting}
                     className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors duration-300 disabled:opacity-70"
                   >
-                    {isSaving ? "Saving..." : "Update Inquiry"}
+                    {isDeleting ? "Deleting..." : "Update Inquiry"}
                   </button>
                 </div>
               </div>
@@ -350,7 +382,7 @@ export default function InquiryDetail({ params }: { params: { id: string } }) {
                     </a>
                   )}
                   <button
-                    onClick={handleDeleteInquiry}
+                    onClick={handleDelete}
                     disabled={isDeleting}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors duration-300 disabled:opacity-70"
                   >
