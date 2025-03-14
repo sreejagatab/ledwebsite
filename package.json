@@ -7,7 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prisma:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "prisma:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "test:playwright": "playwright test",
+    "test:playwright:ui": "playwright test --ui",
+    "test:a11y": "jest --testMatch='**/*.a11y.test.[jt]s?(x)'",
+    "test:perf": "lighthouse http://localhost:3001 --output-path=./tests/performance/report.html --view"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

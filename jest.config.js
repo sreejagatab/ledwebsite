@@ -11,25 +11,34 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     // Handle module aliases (this will be automatically configured for you soon)
-    '^@/(.*)$': '<rootDir>/$1',
+    '^@/app/(.*)$': '<rootDir>/app/$1',
+    '^@/components/(.*)$': '<rootDir>/app/components/$1',
+    '^@/utils/(.*)$': '<rootDir>/app/utils/$1',
+    '^@/lib/(.*)$': '<rootDir>/lib/$1',
   },
-  testMatch: [
-    '**/__tests__/**/*.test.[jt]s?(x)',
-    '**/?(*.)+(spec|test).[jt]s?(x)',
+  testPathIgnorePatterns: [
+    '<rootDir>/node_modules/',
+    '<rootDir>/.next/',
+    '<rootDir>/tests/e2e/', // Exclude E2E tests from Jest runs
   ],
   collectCoverageFrom: [
     'app/**/*.{js,jsx,ts,tsx}',
     '!app/**/*.d.ts',
-    '!app/api/**',
+    '!app/api/auth/**',
+    '!app/lib/db.ts',
     '!**/node_modules/**',
   ],
   coverageThreshold: {
     global: {
+      statements: 70,
       branches: 70,
       functions: 70,
       lines: 70,
-      statements: 70,
     },
+  },
+  transform: {
+    // Use babel-jest to transpile tests with the next/babel preset
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
 };
 
