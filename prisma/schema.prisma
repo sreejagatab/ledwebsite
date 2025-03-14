@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Changed from postgresql to sqlite for easier development
+  url      = env("DATABASE_URL")
+}
+
+// Portfolio Project Model
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  category    String
+  location    String
+  description String
+  challenge   String
+  solution    String
+  results     String
+  imageSrc    String
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  galleryImages ProjectImage[]
+  testimonials  Testimonial[]
+}
+
+// Project Images
+model ProjectImage {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String?
+  order     Int      @default(0)
+  projectId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// Testimonials
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  position  String?
+  company   String?
+  content   String
+  imageUrl  String?
+  featured  Boolean  @default(false)
+  projectId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+// Contact Form Submissions
+model ContactSubmission {
+  id          String    @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  company     String?
+  projectType String?
+  message     String
+  status      String    @default("new") // new, read, responded, archived
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  respondedAt DateTime?
+}
+
+// User Model for Admin Access
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  hashedPassword String?
+  role           String    @default("user") // user, admin, superadmin
+  image          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  // Relations
+  sessions       Session[]
+}
+
+// Session Model for Authentication
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+} 
